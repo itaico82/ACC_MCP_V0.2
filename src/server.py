@@ -74,57 +74,445 @@ class MCPServer:
     
     def _register_tools(self) -> None:
         """Register all available tools."""
-        # Import handlers when needed to avoid circular imports
+        # Import tools modules
         from src.tools.issues import (
-            create_issue, 
             list_issues, 
             get_issue,
-            search_issues,
-            add_comment
+            create_issue,
+            update_issue
         )
         
-        # Define and register tools
+        from src.tools.issue_types import (
+            list_issue_types,
+            get_issue_type,
+            list_issue_subtypes,
+            get_issue_subtype
+        )
+        
+        from src.tools.statuses import (
+            list_statuses,
+            get_status,
+            get_statuses_for_subtype
+        )
+        
+        from src.tools.custom_attributes import (
+            list_custom_attributes,
+            get_custom_attribute,
+            get_custom_attributes_for_type,
+            get_custom_attributes_for_subtype
+        )
+        
+        from src.tools.contexts import (
+            list_projects,
+            get_project,
+            set_current_project
+        )
+        
+        # Register project context tools
+        self._register_tool(
+            "list_projects",
+            {
+                "name": "list_projects",
+                "description": "List available projects in Autodesk Construction Cloud",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "account_id": {
+                            "type": "string", 
+                            "description": "Optional account ID to filter by"
+                        },
+                        "page": {
+                            "type": "integer", 
+                            "description": "Page number for pagination"
+                        },
+                        "limit": {
+                            "type": "integer", 
+                            "description": "Number of items per page"
+                        },
+                        "search": {
+                            "type": "string", 
+                            "description": "Optional search term"
+                        },
+                        "is_active": {
+                            "type": "boolean", 
+                            "description": "Filter by active status"
+                        }
+                    },
+                    "required": []
+                }
+            },
+            list_projects
+        )
+        
+        self._register_tool(
+            "get_project",
+            {
+                "name": "get_project",
+                "description": "Get details of a specific project",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "project_id": {
+                            "type": "string", 
+                            "description": "ID of the project to get"
+                        }
+                    },
+                    "required": ["project_id"]
+                }
+            },
+            get_project
+        )
+        
+        self._register_tool(
+            "set_current_project",
+            {
+                "name": "set_current_project",
+                "description": "Set the current project context for subsequent operations",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "project_id": {
+                            "type": "string", 
+                            "description": "ID of the project to set as current"
+                        }
+                    },
+                    "required": ["project_id"]
+                }
+            },
+            set_current_project
+        )
+        
+        # Register issue type tools
+        self._register_tool(
+            "list_issue_types",
+            {
+                "name": "list_issue_types",
+                "description": "List available issue types/categories in the current project",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "page": {
+                            "type": "integer", 
+                            "description": "Page number for pagination"
+                        },
+                        "limit": {
+                            "type": "integer", 
+                            "description": "Number of items per page"
+                        },
+                        "search": {
+                            "type": "string", 
+                            "description": "Optional search term"
+                        },
+                        "is_active": {
+                            "type": "boolean", 
+                            "description": "Filter by active status"
+                        },
+                        "include_subtypes": {
+                            "type": "boolean", 
+                            "description": "Whether to include subtypes in the response"
+                        }
+                    },
+                    "required": []
+                }
+            },
+            list_issue_types
+        )
+        
+        self._register_tool(
+            "get_issue_type",
+            {
+                "name": "get_issue_type",
+                "description": "Get details of a specific issue type/category",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "type_id": {
+                            "type": "string", 
+                            "description": "ID of the issue type to get"
+                        },
+                        "include_subtypes": {
+                            "type": "boolean", 
+                            "description": "Whether to include subtypes in the response"
+                        }
+                    },
+                    "required": ["type_id"]
+                }
+            },
+            get_issue_type
+        )
+        
+        self._register_tool(
+            "list_issue_subtypes",
+            {
+                "name": "list_issue_subtypes",
+                "description": "List available issue subtypes for a specific issue type",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "type_id": {
+                            "type": "string", 
+                            "description": "ID of the issue type to get subtypes for"
+                        },
+                        "page": {
+                            "type": "integer", 
+                            "description": "Page number for pagination"
+                        },
+                        "limit": {
+                            "type": "integer", 
+                            "description": "Number of items per page"
+                        },
+                        "search": {
+                            "type": "string", 
+                            "description": "Optional search term"
+                        },
+                        "is_active": {
+                            "type": "boolean", 
+                            "description": "Filter by active status"
+                        }
+                    },
+                    "required": ["type_id"]
+                }
+            },
+            list_issue_subtypes
+        )
+        
+        self._register_tool(
+            "get_issue_subtype",
+            {
+                "name": "get_issue_subtype",
+                "description": "Get details of a specific issue subtype",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "type_id": {
+                            "type": "string", 
+                            "description": "ID of the parent issue type"
+                        },
+                        "subtype_id": {
+                            "type": "string", 
+                            "description": "ID of the issue subtype to get"
+                        }
+                    },
+                    "required": ["type_id", "subtype_id"]
+                }
+            },
+            get_issue_subtype
+        )
+        
+        # Register status tools
+        self._register_tool(
+            "list_statuses",
+            {
+                "name": "list_statuses",
+                "description": "List available issue statuses in the current project",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "page": {
+                            "type": "integer", 
+                            "description": "Page number for pagination"
+                        },
+                        "limit": {
+                            "type": "integer", 
+                            "description": "Number of items per page"
+                        },
+                        "search": {
+                            "type": "string", 
+                            "description": "Optional search term"
+                        },
+                        "is_active": {
+                            "type": "boolean", 
+                            "description": "Filter by active status"
+                        },
+                        "category": {
+                            "type": "string", 
+                            "description": "Filter by status category"
+                        }
+                    },
+                    "required": []
+                }
+            },
+            list_statuses
+        )
+        
+        self._register_tool(
+            "get_status",
+            {
+                "name": "get_status",
+                "description": "Get details of a specific issue status",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "status_id": {
+                            "type": "string", 
+                            "description": "ID of the status to get"
+                        }
+                    },
+                    "required": ["status_id"]
+                }
+            },
+            get_status
+        )
+        
+        self._register_tool(
+            "get_statuses_for_subtype",
+            {
+                "name": "get_statuses_for_subtype",
+                "description": "Get all statuses mapped to a specific issue subtype",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "subtype_id": {
+                            "type": "string", 
+                            "description": "ID of the issue subtype"
+                        },
+                        "include_transitions": {
+                            "type": "boolean", 
+                            "description": "Whether to include allowed transitions for each status"
+                        }
+                    },
+                    "required": ["subtype_id"]
+                }
+            },
+            get_statuses_for_subtype
+        )
+        
+        # Register custom attribute tools
+        self._register_tool(
+            "list_custom_attributes",
+            {
+                "name": "list_custom_attributes",
+                "description": "List available custom attributes in the current project",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "page": {
+                            "type": "integer", 
+                            "description": "Page number for pagination"
+                        },
+                        "limit": {
+                            "type": "integer", 
+                            "description": "Number of items per page"
+                        },
+                        "search": {
+                            "type": "string", 
+                            "description": "Optional search term"
+                        },
+                        "is_active": {
+                            "type": "boolean", 
+                            "description": "Filter by active status"
+                        },
+                        "data_type": {
+                            "type": "string", 
+                            "description": "Filter by data type"
+                        }
+                    },
+                    "required": []
+                }
+            },
+            list_custom_attributes
+        )
+        
+        self._register_tool(
+            "get_custom_attribute",
+            {
+                "name": "get_custom_attribute",
+                "description": "Get details of a specific custom attribute",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "attribute_id": {
+                            "type": "string", 
+                            "description": "ID of the custom attribute to get"
+                        }
+                    },
+                    "required": ["attribute_id"]
+                }
+            },
+            get_custom_attribute
+        )
+        
+        self._register_tool(
+            "get_custom_attributes_for_type",
+            {
+                "name": "get_custom_attributes_for_type",
+                "description": "Get custom attributes mapped to an issue type",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "type_id": {
+                            "type": "string", 
+                            "description": "ID of the issue type"
+                        }
+                    },
+                    "required": ["type_id"]
+                }
+            },
+            get_custom_attributes_for_type
+        )
+        
+        self._register_tool(
+            "get_custom_attributes_for_subtype",
+            {
+                "name": "get_custom_attributes_for_subtype",
+                "description": "Get custom attributes mapped to an issue subtype",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "subtype_id": {
+                            "type": "string", 
+                            "description": "ID of the issue subtype"
+                        }
+                    },
+                    "required": ["subtype_id"]
+                }
+            },
+            get_custom_attributes_for_subtype
+        )
+        
+        # Register issue tools
         self._register_tool(
             "create_issue",
             {
                 "name": "create_issue",
                 "description": "Create a new issue in Autodesk Construction Cloud",
                 "parameters": {
+                    "type": "object",
                     "properties": {
                         "title": {
                             "type": "string", 
                             "description": "Title of the issue (max 100 characters)"
                         },
+                        "type_id": {
+                            "type": "string", 
+                            "description": "ID of the issue type"
+                        },
+                        "subtype_id": {
+                            "type": "string", 
+                            "description": "ID of the issue subtype"
+                        },
                         "description": {
                             "type": "string", 
                             "description": "Detailed description of the issue (max 1000 characters)"
-                        },
-                        "issue_type": {
-                            "type": "string", 
-                            "description": "Description of issue type/category (will be mapped to appropriate type)"
                         },
                         "status": {
                             "type": "string", 
                             "description": "Issue status (must be valid for the selected issue subtype)"
                         },
-                        "location_details": {
+                        "assigned_to": {
                             "type": "string", 
-                            "description": "Physical location description (max 250 characters)"
+                            "description": "ID of the user, role, or company to assign"
                         },
                         "due_date": {
                             "type": "string", 
                             "description": "Due date in ISO8601 format (YYYY-MM-DD)"
-                        },
-                        "assigned_to": {
-                            "type": "string", 
-                            "description": "Person, role, or company to assign (will use ID if known)"
                         },
                         "custom_attributes": {
                             "type": "object", 
                             "description": "Custom attributes specific to the issue type and subtype"
                         }
                     },
-                    "required": ["title"]
+                    "required": ["title", "type_id", "subtype_id"]
                 }
             },
             create_issue
@@ -134,40 +522,57 @@ class MCPServer:
             "list_issues",
             {
                 "name": "list_issues",
-                "description": "Get a filtered list of issues from Autodesk Construction Cloud",
+                "description": "List issues in the current project with various filters",
                 "parameters": {
+                    "type": "object",
                     "properties": {
-                        "status": {
-                            "type": "string", 
-                            "description": "Filter by issue status (comma-separated for multiple)"
-                        },
-                        "issue_type_id": {
-                            "type": "string", 
-                            "description": "Filter by issue type/category ID"
-                        },
-                        "assigned_to": {
-                            "type": "string", 
-                            "description": "Filter by assignee"
-                        },
-                        "due_date": {
-                            "type": "string", 
-                            "description": "Filter by due date range (e.g., '2023-01-01..2023-02-01')"
-                        },
-                        "created_by": {
-                            "type": "string", 
-                            "description": "Filter by creator"
+                        "page": {
+                            "type": "integer", 
+                            "description": "Page number for pagination"
                         },
                         "limit": {
                             "type": "integer", 
-                            "description": "Maximum number of issues to return (max 200)"
+                            "description": "Number of items per page"
                         },
-                        "offset": {
-                            "type": "integer", 
-                            "description": "Pagination offset"
-                        },
-                        "sort": {
+                        "search": {
                             "type": "string", 
-                            "description": "Field to sort by (prefix with '-' for descending)"
+                            "description": "Optional search term"
+                        },
+                        "type_id": {
+                            "type": "string", 
+                            "description": "Filter by issue type ID"
+                        },
+                        "subtype_id": {
+                            "type": "string", 
+                            "description": "Filter by issue subtype ID"
+                        },
+                        "status": {
+                            "type": "string", 
+                            "description": "Filter by issue status"
+                        },
+                        "created_by": {
+                            "type": "string", 
+                            "description": "Filter by creator user ID"
+                        },
+                        "assigned_to": {
+                            "type": "string", 
+                            "description": "Filter by assignee user ID"
+                        },
+                        "sort_by": {
+                            "type": "string", 
+                            "description": "Field to sort by"
+                        },
+                        "sort_order": {
+                            "type": "string", 
+                            "description": "Sort order (asc or desc)"
+                        },
+                        "from_date": {
+                            "type": "string", 
+                            "description": "Filter by creation date (from)"
+                        },
+                        "to_date": {
+                            "type": "string", 
+                            "description": "Filter by creation date (to)"
                         }
                     },
                     "required": []
@@ -180,16 +585,13 @@ class MCPServer:
             "get_issue",
             {
                 "name": "get_issue",
-                "description": "Get details of a specific issue by ID or display ID",
+                "description": "Get details of a specific issue",
                 "parameters": {
+                    "type": "object",
                     "properties": {
                         "issue_id": {
                             "type": "string", 
-                            "description": "UUID of the issue to retrieve"
-                        },
-                        "display_id": {
-                            "type": "integer", 
-                            "description": "Display ID of the issue (numerical ID shown in UI)"
+                            "description": "ID of the issue to get"
                         }
                     },
                     "required": ["issue_id"]
@@ -199,43 +601,46 @@ class MCPServer:
         )
         
         self._register_tool(
-            "search_issues",
+            "update_issue",
             {
-                "name": "search_issues",
-                "description": "Search for issues using natural language",
+                "name": "update_issue",
+                "description": "Update an existing issue",
                 "parameters": {
-                    "properties": {
-                        "query": {
-                            "type": "string", 
-                            "description": "Natural language search query"
-                        }
-                    },
-                    "required": ["query"]
-                }
-            },
-            search_issues
-        )
-        
-        self._register_tool(
-            "add_comment",
-            {
-                "name": "add_comment",
-                "description": "Add a comment to an existing issue",
-                "parameters": {
+                    "type": "object",
                     "properties": {
                         "issue_id": {
                             "type": "string", 
-                            "description": "UUID of the issue to comment on"
+                            "description": "ID of the issue to update"
                         },
-                        "body": {
+                        "title": {
                             "type": "string", 
-                            "description": "Comment text"
+                            "description": "New title for the issue"
+                        },
+                        "description": {
+                            "type": "string", 
+                            "description": "New description for the issue"
+                        },
+                        "status": {
+                            "type": "string", 
+                            "description": "New status for the issue"
+                        },
+                        "assigned_to": {
+                            "type": "string", 
+                            "description": "New assignee for the issue"
+                        },
+                        "due_date": {
+                            "type": "string", 
+                            "description": "New due date for the issue"
+                        },
+                        "custom_attributes": {
+                            "type": "object", 
+                            "description": "Updated custom attributes"
                         }
                     },
-                    "required": ["issue_id", "body"]
+                    "required": ["issue_id"]
                 }
             },
-            add_comment
+            update_issue
         )
     
     async def _process_input(self) -> None:
